@@ -1,0 +1,92 @@
+#include 'totvs.ch'
+#include 'tlpp-core.th'
+
+namespace gerar_CSV
+
+//-- gerar_CSV.U_CRIAR_ARQUIVO_CSV()
+
+Function U_CRIAR_ARQUIVO_CSV()
+
+    Local cSQL      as Character
+    Local cALiasSql as Character
+    Local cMsgErro  as Character
+    Local cTexto    as Character
+    Local cArqCSV   as Character
+    Local lRPC      as Logical
+    Local bUltErro  as Codeblock
+    Private oErr    as Object
+
+
+    bUltErro := errorBlock({|e| oErr := e, break(e)})
+
+    IF type("cEmpAnt") == 'U'
+        rpcSetEnv('99','01')
+        lRPC := .T.
+    ENdIF
+
+    begin sequence
+
+        cSQL += CRLF + "select * from (
+        cSQL += CRLF + "select 'SA1' entidade, a1_cod, a1_loja, a1_nome, a1_tipo, a1_nreduz, a1_cgc, a1_est, a1_cod_mun, a1_mun, a1_bairro, a1_end, a1_email
+        cSQL += CRLF + "from sa1990 sa1
+        cSQL += CRLF + "where sa1.d_e_l_e_t_ = ' '
+        cSQL += CRLF + "union all
+        cSQL += CRLF + "select 'SA2' entidade, a2_cod, a2_loja, a2_nome, a2_tipo, a2_nreduz, a2_cgc, a2_Est, a2_cod_mun, a2_mun, a2_bairro, a2_end, a2_email
+        cSQL += CRLF + "from sa2990 sa2
+        cSQL += CRLF + "where sa2.d_e_l_e_t_ = ' ' )
+        cSQL += CRLF + "where a1_nome <> ' '
+        cSQL += CRLF + "and a1_end <> ' '
+        cSQL += CRLF + "and a1_tipo <> ' '
+        cSQL += CRLF + "order by a1_nome, entidade
+
+        cALiasSql := mpSysOpenQuery(cSQL)
+
+        cTexto := "entidade;codigo;loja;nome;tipo;nome_red;cgc;estado;cod_cidade;cidade;bairro;endereco;email"
+
+        cArqCSV := 'C:\TOTVS\ListaCliFor.csv'
+
+        (cALiasSql)->(dbGoTop())
+
+        While !(cALiasSql)->(eof())
+
+            cTexto += CRLF
+            cTexto += (cALiasSql)->entidade + ";"
+            cTexto += (cALiasSql)->a1_cod + ";"
+            cTexto += (cALiasSql)->a1_loja + ";"
+            cTexto += (cALiasSql)->a1_nome + ";"
+            cTexto += (cALiasSql)->a1_tipo + ";"
+            cTexto += (cALiasSql)->a1_nreduz + ";"
+            cTexto += (cALiasSql)->a1_cgc + ";"
+            cTexto += (cALiasSql)->a1_est + ";"
+            cTexto += (cALiasSql)->a1_cod_mun + ";"
+            cTexto += (cALiasSql)->a1_mun + ";"
+            cTexto += (cALiasSql)->a1_bairro + ";"
+            cTexto += (cALiasSql)->a1_end + ";"
+            cTexto += (cALiasSql)->a1_email
+
+            (cALiasSql)->(dbSkip())
+        Enddo
+
+        (cALiasSql)->(dbCloseArea())
+
+        memowrite(cArqCSV,cTexto)
+
+    recover
+
+        IF !(oErr:description)
+
+            cMsgErro := oErr:description
+
+            IF !(oErr:errorstack)
+                cMsgErro := CRLF + CRLF + alltrim(oErr:errorstack)
+            EndIF
+
+        EndIF
+
+    end sequence
+
+    IF lRPC
+        rpcClearEnv()
+    EndIF
+
+Return

@@ -1,0 +1,67 @@
+#include 'totvs.ch'
+
+/*/{Protheus.doc} U_GERAR_CSV
+    (long_description)
+    /*/
+Function U_GERAR_CSV
+    
+    Local cSaveFile  as character
+    Local cBuffer    as character
+    Local oArqTxt    as object
+    Local lExistFile as logical
+    Local lArqTxt    as logical
+    Local lWrite     as logical
+
+    rpcSetEnv('99','01')
+
+    cSaveFile  :='C:\TOTVS\ListaCliFor.csv'
+    lExistFile := File(cSaveFile)
+    oArqTxt    := fwFileWriter():new(cSaveFile,.F.)
+
+    IF lExistFile
+        lArqTxt := oArqTxt:open(2)
+
+        IF lArqTxt
+            oArqTxt:clear()
+        else
+            fwAlertError(oArqTxt:error():message,'ERRO NA ABERTUA DO ARQUIVO')
+            rcpClearEnv()
+            Return .F.   
+        EndIF
+    Else 
+        lArqTxt := oArqTxt:create()
+
+        IF .not. lArqTxt
+            fwAlertError(oArqTxt:error():message,'ERRO NA ABERTUA DO ARQUIVO')
+            rcpClearEnv()
+            Return .F.   
+        EndIF
+
+    EndIF
+
+    cBuffer := padr("ENTIDADE",10) + ";" + padr("CODIGO",6) + ";" + padr("LOJA",5) + ";" + padr("NOME",35) + ";" + padr("NOME_REDZ",15) + ";" + padr("CNPJ",15) + ";" + padr("ESTADO",5) + ";" + padr("COD_CIDADE",5) + ";" + padr("CIDADE",30) + ";" + padr("BAIRRO",20) + ";" + padr("ENDERECO",40) + ";" + padr("EMAIL",30)
+    lWrite  := oArqTxt:write(cBuffer)
+
+    IF .not. lWrite
+        fwAlertError(oArqTxt:error():message,'ERRO NA ABERTUA DO ARQUIVO')
+        rcpClearEnv()
+        Return .F.   
+    EndIF
+
+    cBuffer := CRLF + strtran(space(220)," ",";")
+    oArqTxt:write(cBuffer)
+
+    cPrefixo := ''
+
+    bBloco := {|| cPrefixo := substr(alias(),2,2),;
+                  cBuffer  := CRLF + padr(alias(),10) + ";" + padr(&(cPrefixo + "_COD"),6) + ";" + padr(&(cPrefixo + "_LOJA"),5) + ";" + padr(LEFT(&(cPrefixo + "_NOME"),35),35) + ";" + padr(LEFT(&(cPrefixo + "_NREDUZ"),15),15) + ";" + padr(&(cPrefixo +"_CGC"),15) + ";" + padr(&(cPrefixo + "_EST"),5) + ";" + padr(&(cPrefixo + "_COD_MUN"),5) + ";" + padr(LEFT(&(cPrefixo + "_MUN"),30),30) + ";" + padr(LEFT(&(cPrefixo + "_BAIRRO"),20),20) + ";" + padr(LEFT(&(cPrefixo + "_END"),40),40) + ";" + padr(LEFT(&(cPrefixo + "_EMAIL"),30),30),;
+                  oArqTxt:write(cBuffer)}  
+
+    SA1->(dbEval(bBloco))
+    SA2->(dbEval(bBloco))
+
+    oArqTxt:close()
+
+    rpcClearEnv()
+
+Return
