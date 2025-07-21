@@ -1,0 +1,194 @@
+#include 'totvs.ch'
+#Include "Protheus.ch"
+#include 'tlpp-core.th'
+#include 'fwbrowse.ch'
+
+
+//namespace Atividade_gb_oleo
+
+// Atividade_gb_oleo.U_FILTRO
+
+Function U_FILTRO
+
+    Local lRPC
+    Local aArea         := FWGetArea()
+    Local nCorFundo     := RGB(0, 0, 0)
+    Local nClrText      := RGB(255, 0, 0)
+    Local nJanAltura    := 400
+    Local nJanLargur    := 700 
+    Local cJanTitulo    := 'Consulta de produtos'
+    Local lDimPixels    := .T. 
+    Local lCentraliz    := .T. 
+    Local nObjLinha     := 0
+    Local nObjColun     := 0
+    Local nObjLargu     := 0
+    Local nObjAltur     := 0
+    Local oOK := LoadBitmap(GetResources(),'br_verde')
+    Local oNO := LoadBitmap(GetResources(),'br_vermelho')
+    Public ADADOCONFIRM := {}
+
+
+    Private cFontNome   := 'Tahoma'
+    Private oFontPadrao := TFont():New(cFontNome, , -12)
+    Private oDialog 
+    Private cProd       := "Produtos"
+    Private oBtnObj0
+    Private cBtnObj0    := 'Confirmar' 
+    Private oBtnObj1 
+    Private cBtnObj1    := 'Cancelar' 
+
+    Private oSayObj0, oSayObj1, oSayObj2 
+    Private cSayObj0 := 'Referencia: '
+    Private cSayObj1 := 'Fabricante: '
+    Private cSayObj2 := 'Aplicacao: '
+
+    Private oGetObj0, oGetObj1, oGetObj2
+    Private xGetObj0 := Space(250)
+    Private xGetObj1 := Space(250)
+    Private xGetObj2 := Space(250)
+    Private aCopiaB := {}
+    Private oBrowse
+    Private lRet
+
+    IF Type("cEmpAnt") == 'U'
+        rpcSetEnv('99','01')
+        lRPC := .T.
+    EndIF
+
+    
+    Private bBtnObj0 := {|| ConfirmaProduto() }
+    Private bBtnObj1 := {|| oDialog:End() }
+    
+    
+
+    lRet := .F.
+
+    oDialog := TDialog():New(0, 0, nJanAltura, nJanLargur, cJanTitulo, , , , , , nCorFundo, , , lDimPixels)
+
+    // Referência
+    nObjLinha := 9
+    nObjColun := 7
+    nObjLargu := 180
+    nObjAltur := 15
+    oSayObj0 := TSay():New(nObjLinha, nObjColun, {|| cSayObj0}, oDialog, , oFontPadrao, , , , lDimPixels, nClrText, , nObjLargu, nObjAltur)
+
+    nObjLinha := 5
+    nObjColun := 40
+    nObjLargu := 240
+    oGetObj0 := TGet():New(nObjLinha, nObjColun, {|u| If(PCount() > 0, xGetObj0 := u, xGetObj0)}, oDialog, nObjLargu, nObjAltur, , , , , oFontPadrao, , , lDimPixels)
+    oGetObj0:bChange := {|| AtualizaBrowse() }
+
+    // Fabricante
+    nObjLinha := 30
+    nObjColun := 7
+    nObjLargu := 180
+    oSayObj1 := TSay():New(nObjLinha, nObjColun, {|| cSayObj1}, oDialog, , oFontPadrao, , , , lDimPixels, nClrText, , nObjLargu, nObjAltur)
+
+    nObjLinha := 26
+    nObjColun := 38
+    nObjLargu := 240
+    oGetObj1 := TGet():New(nObjLinha, nObjColun, {|u| If(PCount() > 0, xGetObj1 := u, xGetObj1)}, oDialog, nObjLargu, nObjAltur, , , , , oFontPadrao, , , lDimPixels)
+    oGetObj1:bChange := {|| AtualizaBrowse() }
+
+    // Aplicacao
+    nObjLinha := 55
+    nObjColun := 7
+    nObjLargu := 180
+    oSayObj2 := TSay():New(nObjLinha, nObjColun, {|| cSayObj2}, oDialog, , oFontPadrao, , , , lDimPixels, nClrText, , nObjLargu, nObjAltur)
+
+    nObjLinha := 51
+    nObjColun := 35
+    nObjLargu := 240
+    oGetObj2 := TGet():New(nObjLinha, nObjColun, {|u| If(PCount() > 0, xGetObj2 := u, xGetObj2)}, oDialog, nObjLargu, nObjAltur, , , , , oFontPadrao, , , lDimPixels)
+    oGetObj2:bChange := {|| AtualizaBrowse() }
+
+    // Botoes
+    nObjLinha := 180
+    nObjColun := 280
+    oBtnObj0 := TButton():New(nObjLinha, nObjColun, cBtnObj0, oDialog, bBtnObj0, 70, 15, , oFontPadrao, , lDimPixels)
+
+    nObjLinha := 180
+    nObjColun := 205
+    oBtnObj1 := TButton():New(nObjLinha, nObjColun, cBtnObj1, oDialog, bBtnObj1, 70, 15, , oFontPadrao, , lDimPixels)
+
+
+    aBrowse := {}
+    DbSelectArea("SB1")
+    DbSetOrder(1)
+    DbGoTop()
+    
+
+    While !Eof()
+        AAdd(aBrowse, { .T., SB1->B1_COD, SB1->B1_DESC, SB1->B1_YCODREF, SB1->B1_FABRIC, SB1->B1_YAPLIC }) 
+        DbSkip()
+    EndDo
+
+    aCopiaB := aClone(aBrowse)
+    
+
+    nObjLinha := 75
+    nObjColun := 1
+    nObjLargu := 350
+    nObjAltur := 100
+    oBrowse := TCBrowse():New( nObjLinha, nObjColun, nObjLargu, nObjAltur,, {'','Codigo','Nome','Referencia','Fabricante','Aplicacao'},{20,50,50,50,50,50}, oDialog,,,,,{||},,,,,,,.F.,,.T.,,.F.,,, )
+
+    oBrowse:SetArray(aBrowse)
+
+    oBrowse:bLine := {||{ If(aBrowse[oBrowse:nAt,01],oOK,oNO),;
+                             aBrowse[oBrowse:nAt,02],;
+                             aBrowse[oBrowse:nAt,03],;
+                             aBrowse[oBrowse:nAt,04],;
+                             aBrowse[oBrowse:nAt,05],;
+                             aBrowse[oBrowse:nAt,06] } }
+
+    
+
+    oDialog:Activate(, , , lCentraliz, , )
+
+    FWRestArea(aArea)
+    IF lRPC
+        rpcClearEnv()
+    EndIF
+
+Return lRet
+
+
+
+Static Function AtualizaBrowse()
+    Local i, lInclui
+    aSize(aBrowse, 0)
+
+    For i := 1 To Len(aCopiaB)
+        lInclui := .T.
+
+        If !Empty(AllTrim(xGetObj0)) .And. !(Upper(AllTrim(xGetObj0)) $ Upper(AllTrim(aCopiaB[i][4])))
+            lInclui := .F.
+        EndIf
+
+        If !Empty(AllTrim(xGetObj1)) .And. !(Upper(AllTrim(xGetObj1)) $ Upper(AllTrim(aCopiaB[i][5])))
+            lInclui := .F.
+        EndIf
+
+        If !Empty(AllTrim(xGetObj2)) .And. !(Upper(AllTrim(xGetObj2)) $ Upper(AllTrim(aCopiaB[i][6])))
+            lInclui := .F.
+        EndIf
+
+        If lInclui
+            AAdd(aBrowse, aCopiaB[i])
+        EndIf
+    Next
+
+    oBrowse:Refresh()
+Return
+
+
+
+Static Function ConfirmaProduto()
+    If Len(aBrowse) > 0 .And. oBrowse:nAt > 0
+        ADADOCONFIRM := aBrowse[oBrowse:nAt]
+        ADADOCONFIRM := ADADOCONFIRM[2]
+
+        lRet := .T.
+        oDialog:End()
+    EndIf
+Return
